@@ -2,7 +2,7 @@
 
 ## 分布式优化问题
 
-考虑一个10节点的分布式系统节点i有线性测量  $\mathbf{b}_i=A_i\mathbf{x}+\mathbf{e}_i$ ，其中 $\mathbf{b}_i$ 为10维的测量值， $A_i$ 为10*200维的测量矩阵， $\mathbf{x}$ 为200维的未知稀疏向量且稀疏度为5， $\mathbf{e}_i$ 为10维的测量噪声从所有 $\mathbf{b}_i$ 与 $A_i$ 中恢复 $\mathbf{x}$ 的一范数规范化最小二乘模型如下
+考虑一个10节点的分布式系统节点i有线性测量 \(\mathbf{b}_i=A_i\mathbf{x}+\mathbf{e}_i\)，其中\(\mathbf{b}_i\)为10维的测量值，\(A_i\)为10*200维的测量矩阵，\(\mathbf{x}\)为200维的未知稀疏向量且稀疏度为5，\(\mathbf{e}_i\)为10维的测量噪声从所有\(\mathbf{b}_i\)与\(A_i\)中恢复\(\mathbf{x}\)的一范数规范化最小二乘模型如下
 
 $$\min \frac{1}{2}\sum_1^{10}\|A_i\mathbf{x}-\mathbf{b}_i\|_2^2 + p\|\mathbf{x}\|_1$$
 
