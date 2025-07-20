@@ -4,7 +4,9 @@
 
 考虑一个10节点的分布式系统节点i有线性测量  $\mathbf{b}_i=A_i\mathbf{x}+\mathbf{e}_i$ ，其中 $\mathbf{b}_i$ 为10维的测量值， $A_i$ 为10*200维的测量矩阵， $\mathbf{x}$ 为200维的未知稀疏向量且稀疏度为5， $\mathbf{e}_i$ 为10维的测量噪声从所有 $\mathbf{b}_i$ 与 $A_i$ 中恢复 $\mathbf{x}$ 的一范数规范化最小二乘模型如下
 
-$$\min \frac{1}{2}\sum_1^{10}\|A_i\mathbf{x}-\mathbf{b}_i\|_2^2 + p\|\mathbf{x}\|_1$$
+
+$$\min \frac{1}{2}\sum_1^{10}\|A_i\mathbf{x}-\mathbf{b}_i\|_2^2 + p\|\mathbf{x}\|_1
+$$
 
 其中p为非负的正则化参数请设计下述分布式算法求解该问题
 
@@ -28,86 +30,117 @@ $$\min \frac{1}{2}\sum_1^{10}\|A_i\mathbf{x}-\mathbf{b}_i\|_2^2 + p\|\mathbf{x}\
 
 **增广拉格朗日法**
 引入局部变量 $\mathbf{x}_i$ 和全局变量 $\mathbf{z}$ ，约束 $\mathbf{x}_i = \mathbf{z}$ ，问题转换为
+
 $$
 \min \sum_{i=1}^{10} \frac{1}{2}\|A_i\mathbf{x}_i - \mathbf{b}_i\|_2^2 + p\|\mathbf{z}\|_1 \quad \text{st} \quad \mathbf{x}_i = \mathbf{z}, \forall i
 $$
 
+
 $$
 L_c(\mathbf{x}_i, \mathbf{z}, \mathbf{v}_i) = \sum_{i=1}^{10} \left[ \frac{1}{2}\|A_i\mathbf{x}_i - \mathbf{b}_i\|_2^2 + \mathbf{v}_i^T(\mathbf{x}_i - \mathbf{z}) + \frac{c}{2}\|\mathbf{x}_i - \mathbf{z}\|_2^2 \right] + p\|\mathbf{z}\|_1
 $$
+
 其中 $\mathbf{v}_i$ 为对偶变量， $c > 0$ 为惩罚参数
 
 **局部变量 $\mathbf{x}_i$ 更新（并行）**
+
 $$
      \mathbf{x}_i^{k+1} = \arg\min_{\mathbf{x}_i} \frac{1}{2}\|A_i\mathbf{x}_i - \mathbf{b}_i\|_2^2 + \frac{c}{2}\|\mathbf{x}_i - \mathbf{z}^k \|_2^2 + (\mathbf{v}_i^k)^Tx_i
 $$
+
 目标函数为强凸函数，局部最优解即为全局最优解，求梯度易得
+
 $$
 A_i^T(A_i\mathbf{x}_i - \mathbf{b}_i) + c(\mathbf{x}_i - \mathbf{z}^k) + \mathbf{v}_i^k = 0
 $$
+
 $$
  \mathbf{x}_i^{k+1} = \left(A_i^\top A_i + cI \right)^{-1}\left(A_i^\top \mathbf{b}_i + c\mathbf{z}^k - \mathbf{v}_i^k\right)
 $$
 
 **全局变量  $\mathbf{z}$  更新（中心聚合）**
 中心节点收集所有  $\mathbf{x}_i^{k+1}$  后，求解
+
 $$
 \mathbf{z}^{k+1} = \arg\min_{\mathbf{z}} \sum_{i=1}^{10} \left[ \frac{c}{2}\|\mathbf{x}_i^{k+1} - \mathbf{z}\|_2^2 - (\mathbf{v}_i^k)^T\mathbf{z} \right] + p\|\mathbf{z}\|_1
 $$
+
 目标函数可整理为
+
 $$
 \frac{c}{2} \sum_{i=1}^{10} \|\mathbf{x}_i^{k+1}\|_2^2 - c \mathbf{z}^T \sum_{i=1}^{10} \mathbf{x}_i^{k+1} + \frac{10c}{2} \|\mathbf{z}\|_2^2 - \mathbf{z}^T \sum_{i=1}^{10} \mathbf{v}_i^k + p\|\mathbf{z}\|_1
 $$
+
 忽略常数项  $\frac{c}{2} \sum_{i=1}^{10} \|\mathbf{x}_i^{k+1}\|_2^2$ ，剩余项为
+
 $$
 5c \|\mathbf{z}\|_2^2 - \mathbf{z}^T \left( c \sum_{i=1}^{10} \mathbf{x}_i^{k+1} + \sum_{i=1}^{10} \mathbf{v}_i^k \right) + p\|\mathbf{z}\|_1
 $$
+
 配方，有
+
 $$
 \mathbf{z}^{k+1} = \arg\min_{\mathbf{z}} 5c \left\| \mathbf{z} - \frac{1}{10} \sum_{i=1}^{10} \left( \mathbf{x}_i^{k+1} + \frac{\mathbf{v}_i^k}{c} \right) \right\|_2^2 + p\|\mathbf{z}\|_1
 $$
+
 令
+
 $$
    \mathbf{d} = \frac{1}{10} \sum_{i=1}^{10} \left( \mathbf{x}_i^{k+1} + \frac{\mathbf{v}_i^k}{c} \right)
-   $$
-则
 $$
-   5c \|\mathbf{z} - \mathbf{d}\|_2^2 + p\|\mathbf{z}\|_1
-   $$
+
+则
+
+$$
+5c \|\mathbf{z} - \mathbf{d}\|_2^2 + p\|\mathbf{z}\|_1
+$$
+
 对每个分量  $z_j$ ，优化问题为
-   $$
-   5c (z_j - d_j)^2 + p|z_j|
-   $$
+   
+$$
+5c (z_j - d_j)^2 + p|z_j|
+$$
+
 
 （1）当  $z_j > 0$  时，次梯度条件为
+     
      $$
      10c(z_j - d_j) + p = 0 \quad \Rightarrow \quad z_j = d_j - \frac{p}{10c}
      $$
+    
      需满足  $d_j - \frac{p}{10c} > 0$ ，即  $d_j > \frac{p}{10c}$ 
 （2）当  $z_j < 0$  时，次梯度条件为
+     
      $$
      10c(z_j - d_j) - p = 0 \quad \Rightarrow \quad z_j = d_j + \frac{p}{10c}
      $$
+    
      需满足  $d_j + \frac{p}{10c} < 0$ ，即  $d_j < -\frac{p}{10c}$ 
+
 （3）当  $z_j = 0$  时，需满足  $|d_j| \leq \frac{p}{10c}$ 
 
 综合（1）（2）（3），有
+
 $$
    z_j = \text{sgn}(d_j) \cdot \max\left(|d_j| - \frac{p}{10c}, 0\right).
 $$
+
 定义软门限函数
 
-   $$
+   
+$$
 \mathcal{S}_\lambda(u_j) = \text{sgn}(u_j) \cdot \max\left(|u_j| - \lambda, 0\right).
 $$
 
 带入上式，并将 $\mathbf{d}$ 展开，有
+
 $$
 \mathbf{z}^{k+1} = \mathcal{S}_{p/(10c)} \left( \frac{1}{10} \sum_{i=1}^{10} \left( \mathbf{x}_i^{k+1} + \frac{\mathbf{v}_i^k}{c} \right) \right),
 $$
 
 **对偶变量  $\mathbf{v}_i$  更新（并行）**
 每个节点  $i$  更新对偶变量，梯度上升法
+
 $$
 \mathbf{v}_i^{k+1} = \mathbf{v}_i^k + c\left( \mathbf{x}_i^{k+1} - \mathbf{z}^{k+1} \right)
 $$
@@ -150,41 +183,55 @@ for k in range(max_iter):
 
 具体来说，在软门限操作
 
+
 $$
 \mathbf{z}^{k+1} = \mathcal{S}_{p/(10c)}\left( \frac{1}{10}\sum_{i=1}^{10} \left( \mathbf{x}_i^{k+1} + \frac{\mathbf{v}_i^k}{c} \right) \right)
 $$
+
 当  $ p $  很大（如 5）时：
 阈值  $ \lambda = p/(10c) $  显著增大，会将大部分输入值置零。
+
 ![](2025-05-04-00-08-33.png)
 
 ### 2、邻近点梯度法
 
 #### （1）算法设计
 
-$$\min \frac{1}{2}\sum_1^{10}\|A_i\mathbf{x}-\mathbf{b}_i\|_2^2 + p\|\mathbf{x}\|_1$$
+
+$$
+\min \frac{1}{2}\sum_1^{10}\|A_i\mathbf{x}-\mathbf{b}_i\|_2^2 + p\|\mathbf{x}\|_1
+$$
 
 令
+
 $$
    S(\mathbf{x}) = \frac{1}{2}\sum_1^{10}\|A_i\mathbf{x}-\mathbf{b}_i\|_2^2 \\
    r(\mathbf{x}) = p\|\mathbf{x}\|_1
 $$
+
 从而 $S(\mathbf{x})$ 可微， $r(\mathbf{x})$ 不可微但容易求邻近点投影
 
 给定  $\hat{\mathbf{x}}, \alpha$ ，下求
+
 
 $$
    \arg\min_{\mathbf{x}} p\|\mathbf{x}\|_1 + \frac{1}{2\alpha}\|\mathbf{x}-\hat{\mathbf{x}}\|_2^2
 $$
 
 该问题在交替方向乘子法已经解决，其显式解为
+
 $$
 \mathbf{x} = \mathcal{S}_{p\alpha} (\hat{\mathbf{x}})
 $$
+
  $S(\mathbf{x})$ 的梯度
+
 $$
    \nabla S(\mathbf{x})=\sum_{i=1}^{10} A_i^T(A_i\mathbf{x}-\mathbf{b}_i)
 $$
+
 因此，算法如下
+
 
 $$
    \mathbf{x}^{k+\frac{1}{2}}=\mathbf{x}^k-\alpha \sum_{i=1}^{10} A_i^T(A_i\mathbf{x}^k-\mathbf{b}_i) \\
@@ -232,16 +279,22 @@ for k in range(max_iter):
 
 #### （1）算法设计
 
-$$\min \frac{1}{2}\sum_1^{10}\|A_i\mathbf{x}-\mathbf{b}_i\|_2^2 + p\|\mathbf{x}\|_1$$
+
+$$
+\min \frac{1}{2}\sum_1^{10}\|A_i\mathbf{x}-\mathbf{b}_i\|_2^2 + p\|\mathbf{x}\|_1
+$$
 
 令
+
 $$
    S(\mathbf{x}) = \frac{1}{2}\sum_1^{10}\|A_i\mathbf{x}-\mathbf{b}_i\|_2^2 \\
    r(\mathbf{x}) = p\|\mathbf{x}\|_1
 $$
+
 从而 $S(\mathbf{x})$ 可微， $r(\mathbf{x})$ 不可微，转而求次梯度
 
 易知函数  $ r(\mathbf{x}) = p\|\mathbf{x}\|_1 $  的次梯度集合为：
+
 $$
 \partial r(\mathbf{x}) = \left\{ \mathbf{g} \in \mathbb{R}^n \,\bigg|\, \forall i, \begin{cases}
 g_i = p \cdot \text{sign}(x_i), & x_i \neq 0, \\
@@ -252,10 +305,13 @@ $$
 当x = 0时，随机选取⼀个作为次梯度进⾏更新
 
  $S(\mathbf{x})$ 的梯度
+
 $$
    \nabla S(\mathbf{x})=\sum_{i=1}^{10} A_i^T(A_i\mathbf{x}-\mathbf{b}_i)
 $$
+
 因此，原问题的次梯度为：
+
 $$
    g_0(\mathbf{x}) = \sum_{i=1}^{10} A_i^T(A_i\mathbf{x}-\mathbf{b}_i) + \partial r(\mathbf{x})
 $$
@@ -272,6 +328,7 @@ $$
 这一点也可由实验结果得到验证，每次都跑完全部的迭代过程
 
 算法如下：
+
 $$
    \alpha^k = \frac{1}{\sqrt{k+1}}\\
    \mathbf{x}^{k+1}=\mathbf{x}^k-\alpha^k g_0(\mathbf{x})
