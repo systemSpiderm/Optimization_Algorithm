@@ -104,18 +104,18 @@ $$
 
 （1）当  $z_j > 0$  时，次梯度条件为
      
-     $$
-     10c(z_j - d_j) + p = 0 \quad \Rightarrow \quad z_j = d_j - \frac{p}{10c}
-     $$
+$$
+10c(z_j - d_j) + p = 0 \quad \Rightarrow \quad z_j = d_j - \frac{p}{10c}
+$$
     
-     需满足  $d_j - \frac{p}{10c} > 0$ ，即  $d_j > \frac{p}{10c}$ 
+需满足  $d_j - \frac{p}{10c} > 0$ ，即  $d_j > \frac{p}{10c}$ 
 （2）当  $z_j < 0$  时，次梯度条件为
      
-     $$
-     10c(z_j - d_j) - p = 0 \quad \Rightarrow \quad z_j = d_j + \frac{p}{10c}
-     $$
+$$
+10c(z_j - d_j) - p = 0 \quad \Rightarrow \quad z_j = d_j + \frac{p}{10c}
+$$
     
-     需满足  $d_j + \frac{p}{10c} < 0$ ，即  $d_j < -\frac{p}{10c}$ 
+需满足  $d_j + \frac{p}{10c} < 0$ ，即  $d_j < -\frac{p}{10c}$ 
 
 （3）当  $z_j = 0$  时，需满足  $|d_j| \leq \frac{p}{10c}$ 
 
